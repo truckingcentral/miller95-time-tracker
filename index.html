@@ -157,6 +157,40 @@
             border: 1px solid #f5c6cb;
         }
 
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .form-toggle {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 25px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
         /* MAIN APP STYLES */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -177,29 +211,21 @@
         }
 
         .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
         }
 
-        .settings-btn {
-            position: absolute;
-            top: 20px;
-            left: 70px;
-            background: rgba(255,255,255,0.2);
-            border: none;
+        .logout-btn:hover {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+        .logout-btn.active {
+            background: #dc3545;
             color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
+        }
+
+        .logout-btn.active:hover {
+            background: #c82333;
         }
 
         .activity-indicator {
@@ -707,10 +733,8 @@
     <!-- Login Screen -->
     <div id="loginScreen" class="login-screen">
         <div class="login-logo">
-            <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-            </svg>
+            <img src="gsp-logo.png" alt="GSP Logo" style="width: 80px; height: 80px; border-radius: 20px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div style="font-size: 40px; display: none;">🐕</div>
         </div>
         <h1 class="login-title">Miller95 Time Tracker Pro</h1>
         <p class="login-subtitle">Secure client time tracking</p>
@@ -719,7 +743,12 @@
             Invalid credentials. Please try again.
         </div>
         
-        <form class="login-form" onsubmit="handleLogin(event)">
+        <div id="successMessage" class="success-message hidden">
+            Account created successfully! Please sign in.
+        </div>
+        
+        <!-- Login Form -->
+        <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autocomplete="username">
@@ -730,9 +759,40 @@
             </div>
             <button type="submit" class="login-btn">Sign In</button>
         </form>
+
+        <!-- Signup Form -->
+        <form id="signupForm" class="login-form hidden" onsubmit="handleSignup(event)">
+            <div class="form-group">
+                <label for="signupFullName">Full Name</label>
+                <input type="text" id="signupFullName" name="fullName" required>
+            </div>
+            <div class="form-group">
+                <label for="signupUsername">Username</label>
+                <input type="text" id="signupUsername" name="username" required minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" name="password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+            </div>
+            <button type="submit" class="login-btn">Create Account</button>
+        </form>
+        
+        <!-- Form Toggle Buttons -->
+        <div class="form-toggle">
+            <button id="showLogin" class="toggle-btn active" onclick="showLoginForm()">Sign In</button>
+            <button id="showSignup" class="toggle-btn" onclick="showSignupForm()">Sign Up</button>
+        </div>
         
         <div class="demo-credentials">
-            <strong>Demo Credentials:</strong><br>
+            <strong>Demo Account:</strong><br>
             Username: sarah<br>
             Password: timetrack123
         </div>
@@ -751,8 +811,6 @@
         <!-- Header -->
         <div class="header">
             <div class="activity-indicator" id="activityIndicator"></div>
-            <button class="settings-btn" onclick="showTab('settings')">⚙️</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
             <h1>Miller95 Time Tracker Pro</h1>
             <div class="user-info" id="userInfo">Welcome back!</div>
         </div>
@@ -932,6 +990,7 @@
             <button class="nav-btn active" onclick="showTab('timer')">⏱️ Timer</button>
             <button class="nav-btn" onclick="showTab('reports')">📊 Reports</button>
             <button class="nav-btn" onclick="showTab('settings')">⚙️ Settings</button>
+            <button class="nav-btn" onclick="logout()">🚪 Logout</button>
         </div>
 
         <!-- Inactivity Check Modal -->
@@ -1018,6 +1077,7 @@
             constructor() {
                 this.currentUser = null;
                 this.isAuthenticated = false;
+                this.users = this.loadUsers();
                 this.clients = [
                     { id: 'abc-corp', name: 'ABC Corporation' },
                     { id: 'smith-llc', name: 'Smith LLC' },
@@ -1034,6 +1094,38 @@
                 this.loadFromStorage();
             }
 
+            loadUsers() {
+                const defaultUsers = {
+                    'sarah': { 
+                        password: 'timetrack123', 
+                        fullName: 'Sarah Demo', 
+                        email: 'sarah@demo.com',
+                        created: new Date().toISOString()
+                    },
+                    'admin': { 
+                        password: 'admin123', 
+                        fullName: 'Admin User', 
+                        email: 'admin@demo.com',
+                        created: new Date().toISOString()
+                    }
+                };
+
+                try {
+                    const stored = window.appUsers;
+                    return stored ? { ...defaultUsers, ...stored } : defaultUsers;
+                } catch (e) {
+                    return defaultUsers;
+                }
+            }
+
+            saveUsers() {
+                try {
+                    window.appUsers = this.users;
+                } catch (e) {
+                    console.warn('Could not save users');
+                }
+            }
+
             saveToStorage() {
                 const data = {
                     clients: this.clients,
@@ -1041,7 +1133,6 @@
                     settings: this.settings
                 };
                 try {
-                    // Use in-memory storage for this demo
                     window.appData = data;
                 } catch (e) {
                     console.warn('Storage not available');
@@ -1060,6 +1151,46 @@
                     console.warn('Could not load from storage');
                 }
             }
+
+            createUser(username, password, fullName, email) {
+                if (this.users[username]) {
+                    throw new Error('Username already exists');
+                }
+
+                if (username.length < 3) {
+                    throw new Error('Username must be at least 3 characters');
+                }
+
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters');
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    throw new Error('Please enter a valid email address');
+                }
+
+                this.users[username] = {
+                    password: password,
+                    fullName: fullName,
+                    email: email,
+                    created: new Date().toISOString(),
+                    lastLogin: null
+                };
+
+                this.saveUsers();
+                return true;
+            }
+
+            authenticateUser(username, password) {
+                const user = this.users[username];
+                if (user && user.password === password) {
+                    user.lastLogin = new Date().toISOString();
+                    this.saveUsers();
+                    return user;
+                }
+                return null;
+            }
         }
 
         // Initialize app state
@@ -1074,31 +1205,99 @@
         let inactivityCheckInterval = null;
         let inactivityWarningShown = false;
 
-        // Authentication
-        const validCredentials = {
-            'sarah': 'timetrack123',
-            'admin': 'admin123',
-            'demo': 'demo123'
-        };
+        // Authentication functions
+        function showLoginForm() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('showLogin').classList.add('active');
+            document.getElementById('showSignup').classList.remove('active');
+            clearMessages();
+        }
+
+        function showSignupForm() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+            document.getElementById('showLogin').classList.remove('active');
+            document.getElementById('showSignup').classList.add('active');
+            clearMessages();
+        }
+
+        function clearMessages() {
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successMessage').classList.remove('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        function handleSignup(event) {
+            event.preventDefault();
+            
+            const fullName = document.getElementById('signupFullName').value.trim();
+            const username = document.getElementById('signupUsername').value.toLowerCase().trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validation
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            if (fullName.length < 2) {
+                showError('Please enter your full name');
+                return;
+            }
+
+            try {
+                appState.createUser(username, password, fullName, email);
+                showSuccess('Account created successfully! Please sign in.');
+                
+                // Clear form
+                document.getElementById('signupForm').reset();
+                
+                // Switch to login form after 2 seconds
+                setTimeout(() => {
+                    showLoginForm();
+                    document.getElementById('username').value = username;
+                }, 2000);
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        }
 
         function handleLogin(event) {
             event.preventDefault();
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.toLowerCase().trim();
             const password = document.getElementById('password').value;
             
-            if (validCredentials[username] && validCredentials[username] === password) {
+            const user = appState.authenticateUser(username, password);
+            
+            if (user) {
                 appState.currentUser = username;
                 appState.isAuthenticated = true;
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('userInfo').textContent = `Welcome back, ${username.charAt(0).toUpperCase() + username.slice(1)}!`;
+                document.getElementById('userInfo').textContent = `Welcome back, ${user.fullName}!`;
                 
                 // Initialize app after login
                 initializeApp();
+                clearMessages();
             } else {
-                document.getElementById('errorMessage').classList.remove('hidden');
+                showError('Invalid username or password');
                 setTimeout(() => {
-                    document.getElementById('errorMessage').classList.add('hidden');
+                    clearMessages();
                 }, 3000);
             }
         }
@@ -1383,12 +1582,13 @@
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.remove('hidden');
             
-            // Update nav buttons
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = [...document.querySelectorAll('.nav-btn')].find(btn => 
-                btn.textContent.toLowerCase().includes(tabName)
-            );
-            if (activeBtn) activeBtn.classList.add('active');
+            // Update nav buttons (exclude logout button from active state)
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(tabName)) {
+                    btn.classList.add('active');
+                }
+            });
         }
 
         function toggleSetting(toggle) {
@@ -1430,12 +1630,20 @@
         }
 
         function changePassword() {
+            const currentUser = appState.users[appState.currentUser];
             const currentPassword = prompt('Enter your current password:');
-            if (validCredentials[appState.currentUser] === currentPassword) {
-                const newPassword = prompt('Enter your new password:');
+            
+            if (currentUser.password === currentPassword) {
+                const newPassword = prompt('Enter your new password (minimum 6 characters):');
                 if (newPassword && newPassword.length >= 6) {
-                    validCredentials[appState.currentUser] = newPassword;
-                    alert('Password changed successfully!');
+                    const confirmPassword = prompt('Confirm your new password:');
+                    if (newPassword === confirmPassword) {
+                        currentUser.password = newPassword;
+                        appState.saveUsers();
+                        alert('Password changed successfully!');
+                    } else {
+                        alert('Passwords do not match.');
+                    }
                 } else {
                     alert('Password must be at least 6 characters long.');
                 }
